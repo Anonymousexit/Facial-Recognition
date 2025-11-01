@@ -73,7 +73,7 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ image_path }}" alt="Uploaded Image">
+        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image">
         <h2>{{ name }}, you appear to be <span style="color:#00c6ff;">{{ emotion }}</span> 😊</h2>
         <p>Our AI detected this emotion from your uploaded picture.</p>
         <a href="/">Upload Another Image</a>

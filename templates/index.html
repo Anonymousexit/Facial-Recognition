@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Emotion Detector</title>
+    <style>
+        /* ===== Base Styling ===== */
+        body {
+            margin: 0;
+            font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .wrapper {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 40px;
+            width: 380px;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #ffffff;
+            margin-bottom: 25px;
+        }
+
+        p.subtext {
+            color: #cfd8dc;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 14px;
+            display: block;
+            text-align: left;
+            color: #dce3e7;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 18px;
+            transition: background 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="file"]:focus {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        input::file-selector-button {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        input::file-selector-button:hover {
+            background: #00c6ff;
+        }
+
+        input[type="submit"] {
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+        }
+
+        footer {
+            position: absolute;
+            bottom: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #b0bec5;
+            width: 100%;
+        }
+
+        footer a {
+            color: #00c6ff;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <h1>😊 Face Emotion Detector</h1>
+        <p class="subtext">Upload your photo to detect your facial emotion using AI.</p>
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <label for="name">Full Name</label>
+            <input type="text" name="name" required placeholder="Enter your name">
+
+            <label for="email">Email Address</label>
+            <input type="email" name="email" required placeholder="Enter your email">
+
+            <label for="image">Upload Image</label>
+            <input type="file" name="image" accept="image/*" placeholder=".." required>
+
+            <input type="submit" value="Detect Emotion">
+        </form>
+    </div>
+
+    <footer>
+        © 2025 Face Emotion Detector | Built with ❤️ using <a href="#">Flask & TensorFlow</a>
+    </footer>
+</body>
+</html>

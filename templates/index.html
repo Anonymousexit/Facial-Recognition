@@ -3,48 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Facial Emotion Recognition</title>
+  <title>Face Emotion Detector</title>
 </head>
 <body>
-  <h1>Facial Emotion Recognition</h1>
-  <p>Upload an image to detect the emotion.</p>
+  <h1>Face Emotion Detector</h1>
+  <p>Upload a photo to detect your facial emotion.</p>
 
-  <form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data">
-    <label>Full Name:</label><br>
-    <input type="text" name="name" required placeholder=".."><br><br>
+  <form action="/predict" method="post" enctype="multipart/form-data">
+    <label for="name">Full Name:</label><br>
+    <input type="text" name="name" required><br><br>
 
-    <label>Email:</label><br>
-    <input type="email" name="email" required placeholder=".."><br><br>
+    <label for="email">Email:</label><br>
+    <input type="email" name="email" required><br><br>
 
-    <label>Select Image:</label><br>
-    <input type="file" name="image" accept="image/*" required placeholder=".."><br><br>
+    <label for="image">Upload Image:</label><br>
+    <input type="file" name="image" accept="image/*" required><br><br>
 
     <input type="submit" value="Detect Emotion">
   </form>
 
-  <div id="result"></div>
+  {% if emotion %}
+    <h2>Result for {{ name }}</h2>
+    <p><strong>Predicted Emotion:</strong> {{ emotion }}</p>
+    <p><strong>Confidence:</strong> {{ confidence }}%</p>
+    <p><strong>Uploaded Image:</strong></p>
+    <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image" width="200">
+  {% endif %}
 
-  <script>
-    const form = document.getElementById('uploadForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  {% if error %}
+    <p style="color:red;">Error: {{ error }}</p>
+  {% endif %}
 
-      const formData = new FormData(form);
-      const response = await fetch('/predict', {
-        method: 'POST',
-        body: formData
-      });
-
-      const resultDiv = document.getElementById('result');
-      const data = await response.json();
-      if (data.error) {
-        resultDiv.innerHTML = "Error: " + data.error;
-      } else {
-        resultDiv.innerHTML = 
-          "Prediction: " + data.prediction + "<br>" +
-          "Confidence: " + data.confidence + "%";
-      }
-    });
-  </script>
+  <hr>
+  <footer>
+    <p>© 2025 Facial Emotion Detector — Flask & TensorFlow</p>
+  </footer>
 </body>
 </html>

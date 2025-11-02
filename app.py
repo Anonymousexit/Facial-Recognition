@@ -17,7 +17,7 @@ model = load_model('face_emotionModel.h5')
 # Emotion classes
 classes = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
-# Database setup
+# Initialize database
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -67,8 +67,8 @@ def predict():
     conn.commit()
     conn.close()
 
-    # Show result page
-    return render_template('result.html', name=name, emotion=emotion, image_file=filename)
+    # Render same page with result
+    return render_template('index.html', image_file=filename, emotion=emotion, name=name)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -9,31 +9,30 @@
     <h1>Face Emotion Detector</h1>
     <p>Upload your photo to detect your facial emotion using AI.</p>
 
-    <hr>
-
     <form action="/predict" method="post" enctype="multipart/form-data">
-        <table>
-            <tr>
-                <td><label for="name">Full Name:</label></td>
-                <td><input type="text" name="name" id="name" required placeholder="Enter your name"></td>
-            </tr>
-            <tr>
-                <td><label for="email">Email Address:</label></td>
-                <td><input type="email" name="email" id="email" required placeholder="Enter your email"></td>
-            </tr>
-            <tr>
-                <td><label for="image">Upload Image:</label></td>
-                <td><input type="file" name="image" id="image" accept="image/*" required></td>
-            </tr>
-            <tr>
-                <td colspan="2" style="text-align:center;">
-                    <input type="submit" value="Detect Emotion">
-                </td>
-            </tr>
-        </table>
+        <div>
+            <label for="name">Full Name:</label>
+            <input type="text" name="name" id="name" required placeholder="Enter your name">
+        </div>
+        <div>
+            <label for="email">Email Address:</label>
+            <input type="email" name="email" id="email" required placeholder="Enter your email">
+        </div>
+        <div>
+            <label for="image">Upload Image:</label>
+            <input type="file" name="image" id="image" accept="image/*" required>
+        </div>
+        <div>
+            <input type="submit" value="Detect Emotion">
+        </div>
     </form>
 
-    <hr>
+    {% if emotion %}
+    <div>
+        <h2>{{ name }}, you appear to be <span style="color:#00c6ff;">{{ emotion }}</span> 😊</h2>
+        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image">
+    </div>
+    {% endif %}
 
     <footer>
         <p>© 2025 Face Emotion Detector — Built with Flask & TensorFlow</p>

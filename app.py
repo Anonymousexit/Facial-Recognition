@@ -1,44 +1,51 @@
+# app.py
 from flask import Flask, render_template, request
-import sqlite3
-import os
-import logging
+import sqlite3, os, shutil, logging
+import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import load_img, img_to_array
-import numpy as np
 from werkzeug.utils import secure_filename
 
-# Initialize app
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+
+# Use /tmp for writes on Render; still create static/uploads for display
 app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(os.path.join('static', 'uploads'), exist_ok=True)
 
-# Load model safely
-MODEL_PATH = os.path.join(os.getcwd(), 'face_emotionModel.h5')
+# Model loading (absolute path)
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'face_emotionModel.h5')
 model = None
-if os.path.exists(MODEL_PATH):
-    try:
+try:
+    if os.path.exists(MODEL_PATH):
         model = load_model(MODEL_PATH)
-        logger.info(f"✅ Model loaded successfully from {MODEL_PATH}")
-    except Exception as e:
-        logger.error(f"❌ Failed to load model: {e}")
-else:
-    logger.error(f"❌ Model file not found at {MODEL_PATH}")
+        logger.info("Model loaded successfully from %s", MODEL_PATH)
+    else:
+        logger.error("Model file not found at %s", MODEL_PATH)
+except Exception as e:
+    logger.exception("Failed to load model: %s", e)
 
-# Emotion classes
 classes = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
-# Initialize database
 def init_db():
-    conn = sqlite3.connect('/tmp/database.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  name TEXT,
-                  email TEXT,
-                  emotion TEXT,
-                  image_path TEXT)''')
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS users
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      name TEXT,
+                      email TEXT,
+                      emotion TEXT,
+                      image_path TEXT)''')
+        conn.commit()
+        conn.close()
+        logger.info("Database initialized.")
+    except Exception as e:
+        logger.exception("DB init error: %s", e)
 
 init_db()
 
@@ -48,51 +55,47 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if model is None:
-        return render_template('index.html', error="Model not loaded. Check server logs for details.")
     try:
-        name = request.form['name']
-        email = request.form['email']
-        file = request.files['image']
+        if model is None:
+            logger.error("Prediction attempted but model is not loaded.")
+            return "Model not loaded on server.", 500
 
-        if not file:
-            return render_template('index.html', error="No image uploaded.")
+        name = request.form.get('name', '')
+        email = request.form.get('email', '')
+        file = request.files.get('image', None)
+        if file is None:
+            return "No image uploaded", 400
 
         filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+        tmp_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(tmp_path)
+        logger.info("Saved upload to %s", tmp_path)
 
-        # Preprocess image
-        img = load_img(filepath, target_size=(48, 48), color_mode='grayscale')
+        # Preprocess and predict
+        img = load_img(tmp_path, target_size=(48,48), color_mode='grayscale')
         img = img_to_array(img)
-        img = np.expand_dims(img, axis=0)
-        img /= 255.0
-
-        # Predict emotion
+        img = np.expand_dims(img, axis=0) / 255.0
         pred = model.predict(img)
-        emotion = classes[np.argmax(pred)]
-        confidence = round(float(np.max(pred)) * 100, 2)
+        emotion = classes[int(np.argmax(pred))]
 
-        # Save to database
-        conn = sqlite3.connect('/tmp/database.db')
+        # Copy to static for display
+        public_path = os.path.join('static', 'uploads', filename)
+        shutil.copy(tmp_path, public_path)
+        logger.info("Copied to public path %s", public_path)
+
+        # Save record
+        conn = sqlite3.connect('database.db')
         c = conn.cursor()
         c.execute("INSERT INTO users (name, email, emotion, image_path) VALUES (?, ?, ?, ?)",
-                  (name, email, emotion, filepath))
+                  (name, email, emotion, public_path))
         conn.commit()
         conn.close()
 
-        # Render same page with result
-        return render_template(
-            'index.html',
-            emotion=emotion,
-            confidence=confidence,
-            image_file=filename,
-            name=name
-        )
-
+        return render_template('index.html', image_file=filename, emotion=emotion, name=name)
     except Exception as e:
-        return render_template('index.html', error=str(e))
-
+        logger.exception("Prediction error: %s", e)
+        return f"Server error: {str(e)}", 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=10000)
+    # local debug (not used on Render)
+    app.run(host='0.0.0.0', port=5000, debug=True)

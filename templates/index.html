@@ -1,42 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Face Emotion Detector</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Emotion Detector</title>
 </head>
 <body>
-  <h1>Face Emotion Detector</h1>
-  <p>Upload a photo to detect your facial emotion.</p>
+    <h1>Face Emotion Detector</h1>
+    <p>Upload your photo to detect your facial emotion using AI.</p>
 
-  <form action="/predict" method="post" enctype="multipart/form-data">
-    <label for="name">Full Name:</label><br>
-    <input type="text" name="name" required><br><br>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <div>
+            <label for="name">Full Name:</label>
+            <input type="text" name="name" id="name" required placeholder="Enter your name">
+        </div>
+        <div>
+            <label for="email">Email Address:</label>
+            <input type="email" name="email" id="email" required placeholder="Enter your email">
+        </div>
+        <div>
+            <label for="image">Upload Image:</label>
+            <input type="file" name="image" id="image" accept="image/*" required>
+        </div>
+        <div>
+            <input type="submit" value="Detect Emotion">
+        </div>
+    </form>
 
-    <label for="email">Email:</label><br>
-    <input type="email" name="email" required><br><br>
+    {% if emotion %}
+    <div>
+        <h2>{{ name }}, you appear to be <span style="color:#00c6ff;">{{ emotion }}</span> 😊</h2>
+        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image">
+    </div>
+    {% endif %}
 
-    <label for="image">Upload Image:</label><br>
-    <input type="file" name="image" accept="image/*" required><br><br>
-
-    <input type="submit" value="Detect Emotion">
-  </form>
-
-  {% if emotion %}
-    <h2>Result for {{ name }}</h2>
-    <p><strong>Predicted Emotion:</strong> {{ emotion }}</p>
-    <p><strong>Confidence:</strong> {{ confidence }}%</p>
-    <p><strong>Uploaded Image:</strong></p>
-    <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image" width="200">
-  {% endif %}
-
-  {% if error %}
-    <p style="color:red;">Error: {{ error }}</p>
-  {% endif %}
-
-  <hr>
-  <footer>
-    <p>© 2025 Facial Emotion Detector — Flask & TensorFlow</p>
-  </footer>
+    <footer>
+        <p>© 2025 Face Emotion Detector — Built with Flask & TensorFlow</p>
+    </footer>
 </body>
 </html>

@@ -7,20 +7,20 @@
 </head>
 <body>
     <h1>Face Emotion Detector</h1>
-    <p>Upload your photo to detect your facial emotion using AI.</p>
+    <p>Upload your photo to detect your emotion using AI.</p>
 
     <form action="/predict" method="post" enctype="multipart/form-data">
         <div>
-            <label for="name">Full Name:</label>
-            <input type="text" name="name" id="name" required placeholder="Enter your name">
+            <label>Full Name:</label>
+            <input type="text" name="name" required>
         </div>
         <div>
-            <label for="email">Email Address:</label>
-            <input type="email" name="email" id="email" required placeholder="Enter your email">
+            <label>Email:</label>
+            <input type="email" name="email" required>
         </div>
         <div>
-            <label for="image">Upload Image:</label>
-            <input type="file" name="image" id="image" accept="image/*" required>
+            <label>Upload Image:</label>
+            <input type="file" name="image" accept="image/*" required>
         </div>
         <div>
             <input type="submit" value="Detect Emotion">
@@ -29,13 +29,11 @@
 
     {% if emotion %}
     <div>
-        <h2>{{ name }}, you appear to be <span style="color:#00c6ff;">{{ emotion }}</span> 😊</h2>
-        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image">
+        <h2>{{ name }}, your detected emotion is: {{ emotion }}</h2>
+        {% if image_file %}
+        <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Uploaded Image" width="200">
+        {% endif %}
     </div>
     {% endif %}
-
-    <footer>
-        <p>© 2025 Face Emotion Detector — Built with Flask & TensorFlow</p>
-    </footer>
 </body>
 </html>

@@ -1,19 +1,19 @@
-!pip install -q kaggle
-!mkdir -p ~/.kaggle
+# !pip install -q kaggle
+# !mkdir -p ~/.kaggle
 
 
 
-from google.colab import files
-files.upload()
+# from google.colab import files
+# files.upload()
 
 
-!cp kaggle.json ~/.kaggle/
-!chmod 600 ~/.kaggle/kaggle.json
-!kaggle datasets download -d msambare/fer2013
-!unzip -q fer2013.zip -d fer2013
+# !cp kaggle.json ~/.kaggle/
+# !chmod 600 ~/.kaggle/kaggle.json
+# !kaggle datasets download -d msambare/fer2013
+# !unzip -q fer2013.zip -d fer2013
 
 
-# STEP 1: Import required libraries
+
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 

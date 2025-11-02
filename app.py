@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 import sqlite3
 import os
+import logging
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import load_img, img_to_array
 import numpy as np
@@ -11,8 +12,17 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Load trained model
-model = load_model('face_emotionModel.h5')
+# Load model safely
+MODEL_PATH = os.path.join(os.getcwd(), 'face_emotionModel.h5')
+model = None
+if os.path.exists(MODEL_PATH):
+    try:
+        model = load_model(MODEL_PATH)
+        logger.info(f"✅ Model loaded successfully from {MODEL_PATH}")
+    except Exception as e:
+        logger.error(f"❌ Failed to load model: {e}")
+else:
+    logger.error(f"❌ Model file not found at {MODEL_PATH}")
 
 # Emotion classes
 classes = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
@@ -38,6 +48,8 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model is None:
+        return render_template('index.html', error="Model not loaded. Check server logs for details.")
     try:
         name = request.form['name']
         email = request.form['email']

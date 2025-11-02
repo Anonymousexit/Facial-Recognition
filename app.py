@@ -1,101 +1,108 @@
-# app.py
-from flask import Flask, render_template, request
-import sqlite3, os, shutil, logging
-import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.utils import load_img, img_to_array
+import os
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+import numpy as np
+import tensorflow as tf
+import cv2
+import logging
 
-# Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+# ===========================
+# Flask App Setup
+# ===========================
 app = Flask(__name__)
-
-# Use /tmp for writes on Render; still create static/uploads for display
 app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join('static', 'uploads'), exist_ok=True)
 
-# Model loading (absolute path)
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'face_emotionModel.h5')
+# Logging setup (Render displays these in logs)
+logging.basicConfig(level=logging.INFO)
+logger = app.logger
+
+# ===========================
+# Model Setup (Lazy Loading)
+# ===========================
 model = None
-try:
-    if os.path.exists(MODEL_PATH):
-        model = load_model(MODEL_PATH)
-        logger.info("Model loaded successfully from %s", MODEL_PATH)
-    else:
-        logger.error("Model file not found at %s", MODEL_PATH)
-except Exception as e:
-    logger.exception("Failed to load model: %s", e)
+emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
-classes = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
+def get_model():
+    """Load model only once and reuse across requests"""
+    global model
+    if model is None:
+        model_path = os.path.join(os.getcwd(), 'face_emotionModel.h5')
+        logger.info(f"Loading model from {model_path}")
+        model = tf.keras.models.load_model(model_path)
+        logger.info("Model loaded successfully.")
+    return model
 
-def init_db():
-    try:
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS users
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      name TEXT,
-                      email TEXT,
-                      emotion TEXT,
-                      image_path TEXT)''')
-        conn.commit()
-        conn.close()
-        logger.info("Database initialized.")
-    except Exception as e:
-        logger.exception("DB init error: %s", e)
+# ===========================
+# Helper Function
+# ===========================
+def predict_emotion(image_path):
+    """Run emotion prediction on uploaded image"""
+    model = get_model()
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    
+    image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError("Invalid image file")
+    
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-init_db()
+    if len(faces) == 0:
+        return "No face detected"
 
+    (x, y, w, h) = faces[0]
+    roi_gray = gray[y:y+h, x:x+w]
+    roi_gray = cv2.resize(roi_gray, (48, 48))
+    roi = roi_gray.astype('float') / 255.0
+    roi = np.expand_dims(roi, axis=0)
+    roi = np.expand_dims(roi, axis=-1)
+
+    predictions = model.predict(roi)
+    max_index = int(np.argmax(predictions))
+    emotion = emotion_labels[max_index]
+    return emotion
+
+# ===========================
+# Routes
+# ===========================
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    """Allow Render to serve uploaded files"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        if model is None:
-            logger.error("Prediction attempted but model is not loaded.")
-            return "Model not loaded on server.", 500
+        # Ensure an image file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
 
-        name = request.form.get('name', '')
-        email = request.form.get('email', '')
-        file = request.files.get('image', None)
-        if file is None:
-            return "No image uploaded", 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
 
         filename = secure_filename(file.filename)
-        tmp_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(tmp_path)
-        logger.info("Saved upload to %s", tmp_path)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        logger.info(f"Saved upload to {filepath}")
 
-        # Preprocess and predict
-        img = load_img(tmp_path, target_size=(48,48), color_mode='grayscale')
-        img = img_to_array(img)
-        img = np.expand_dims(img, axis=0) / 255.0
-        pred = model.predict(img)
-        emotion = classes[int(np.argmax(pred))]
+        emotion = predict_emotion(filepath)
+        logger.info(f"Predicted emotion: {emotion}")
 
-        # Copy to static for display
-        public_path = os.path.join('static', 'uploads', filename)
-        shutil.copy(tmp_path, public_path)
-        logger.info("Copied to public path %s", public_path)
+        return jsonify({'emotion': emotion})
 
-        # Save record
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute("INSERT INTO users (name, email, emotion, image_path) VALUES (?, ?, ?, ?)",
-                  (name, email, emotion, public_path))
-        conn.commit()
-        conn.close()
-
-        return render_template('index.html', image_file=filename, emotion=emotion, name=name)
     except Exception as e:
-        logger.exception("Prediction error: %s", e)
-        return f"Server error: {str(e)}", 500
+        logger.error(f"Error during prediction: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
+# ===========================
+# Run the app
+# ===========================
 if __name__ == '__main__':
-    # local debug (not used on Render)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Run locally
+    app.run(host='0.0.0.0', port=10000, debug=True)
